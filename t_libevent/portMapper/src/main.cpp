@@ -12,6 +12,8 @@
 #  include <arpa/inet.h>
 # endif
 #include <sys/socket.h>
+#else
+#include <WinSock2.h>
 #endif
 
 #include "event2/bufferevent.h"
@@ -19,8 +21,6 @@
 #include "event2/listener.h"
 #include "event2/util.h"
 #include "event2/event.h"
-
-#include <WinSock2.h>
 
 
 static const int PORT = 9995;
