@@ -12,18 +12,23 @@
 #  include <arpa/inet.h>
 # endif
 #include <sys/socket.h>
+#define __int16 unsigned short
 #else
+
 #include <WinSock2.h>
+
 #endif
 
-#include "event2/bufferevent.h"
-#include "event2/buffer.h"
-#include "event2/listener.h"
-#include "event2/util.h"
-#include "event2/event.h"
+#include <event2/event.h>
+#include <event2/buffer.h>
+#include <event2/bufferevent.h>
+#include <event2/listener.h>
+#include <event2/util.h>
+
 
 
 static const int PORT = 9995;
+
 
 #pragma pack(push,1)
 struct cs_data_st{
@@ -56,32 +61,36 @@ void conn_readcb(struct bufferevent *bev, void *user_data)
 	struct evbuffer *input, *output;
     input = bufferevent_get_input(bev);
     output = bufferevent_get_output(bev);
-	int packetSize = 0;
-	int buffsize = 0;
+	unsigned int packetSize = 0;
+	unsigned int buffsize = 0;
 	while((buffsize = evbuffer_get_length(input)) > 0)
 	{
 		if(sizeof(__int16) > buffsize)
 			break;
 
+        // 这里整理输入缓冲区
 		__int16 *pDataLen = (__int16 *)evbuffer_pullup(input,sizeof(__int16));
-		__int16 iLen = *pDataLen;
-		if( (sizeof(__int16) + iLen) > buffsize)
+		__int16 iBuffLen = *pDataLen;
+		if( (sizeof(__int16) + iBuffLen) > buffsize)
 			break;
 		// 数据完整
-		packetSize = sizeof(__int16) + iLen;
-		char *buf = new char[packetSize];
-		memcpy(buf, evbuffer_pullup(input,packetSize), packetSize);
-		evbuffer_drain(input, packetSize) ;
+        // 不要复制memcpy(buf, evbuffer_pullup(input,packetSize), packetSize);
+        packetSize = iBuffLen + sizeof(__int16);
+		const unsigned char *buff = evbuffer_pullup(input, packetSize);
 		//处理数据包buff
-		//test 只有一种数据包
-		cs_data_st *data = (cs_data_st *)buf;
+		
+        //test 只有一种数据包
+		cs_data_st *data = (cs_data_st *)buff;
 		unsigned int ret = BKDRHash((char*)&(data->str[0]),sizeof(cs_data_st) - sizeof(__int16));
-		printf("server calc answer %d\n",ret);
 		sc_data_st tmp;
 		tmp.len = data->len;
 		tmp.data = ret;
 		evbuffer_add(output,&tmp,sizeof(sc_data_st));
-		delete []buf;
+
+
+        // 上面处理完成了再释放
+		evbuffer_drain(input, packetSize) ;
+		printf("server calc answer %d\n",ret);
 		//使用bufferevent_write或者evbuffer_add发送数据
 		//evbuffer_write和evbuffer_read，用于直接在套接字上写/读数据,在关闭连接前一般flush this cache是调用
 		//evbuffer_add具体在什么时候发送取决于write buff设置的最低水位,默认0
