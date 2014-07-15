@@ -1,4 +1,4 @@
-#include<Winsock2.h>
+ï»¿#include<Winsock2.h>
 #include<stdio.h>
 #include<time.h>
 #include<stdlib.h>
@@ -18,7 +18,7 @@ struct sc_data_st{
 #pragma pack(pop)
 
 
-unsigned int BKDRHash(char *str, unsigned int len)
+unsigned int BKDRHash(const unsigned char  *str, unsigned int len)
 {
 	unsigned int seed = 131; // 31 131 1313 13131 131313 etc..
 	unsigned int hash = 0;
@@ -38,9 +38,9 @@ void main(int argc,char *argv[])
 	SOCKET client;
 	int port=PORT;
 
-	int iLen;  //´Ó·şÎñÆ÷½ÓÊÜµÄÊı¾İ³¤¶È
+	int iLen;  //ä»æœåŠ¡å™¨æ¥å—çš„æ•°æ®é•¿åº¦
 	
-	struct sockaddr_in serv;  //·şÎñÆ÷¶ËµØÖ·
+	struct sockaddr_in serv;  //æœåŠ¡å™¨ç«¯åœ°å€
 
 
 	if(WSAStartup(MAKEWORD(2,2),&wsaData)!=0)
@@ -51,7 +51,7 @@ void main(int argc,char *argv[])
 
 	serv.sin_family=AF_INET;
 	serv.sin_port=htons(port);
-	serv.sin_addr.s_addr=inet_addr("127.0.0.1");
+	serv.sin_addr.s_addr=inet_addr("192.168.12.7");
 
 	client=socket(AF_INET,SOCK_STREAM,0);
 	if(client==INVALID_SOCKET)
@@ -67,16 +67,20 @@ void main(int argc,char *argv[])
 	}
 	else
 	{
-		char buf[BUFFER];  //½ÓÊÜÊı¾İµÄ»º³å
+		char buf[BUFFER];  //æ¥å—æ•°æ®çš„ç¼“å†²
 		cs_data_st tmp;
 		tmp.len = sizeof(tmp.str);
+		LARGE_INTEGER liPerfFreq,liPerfStart,liPerfEnd;
+		QueryPerformanceFrequency(&liPerfFreq);//è·å–æ¯ç§’å¤šå°‘CPU Performance Tick
 		while(1)
 		{
-			//½ÓÊÜÊı¾İ»º³åÇø³õÊ¼»¯
+			//æ¥å—æ•°æ®ç¼“å†²åŒºåˆå§‹åŒ–
 			memset(buf,0,sizeof(buf));
 			iLen = 0;
 			memset(tmp.str, 0, sizeof(tmp.str));
-			sprintf((char *)&(tmp.str[0]),"Elapsed time:%u secs.\n",clock()/1000); 
+			unsigned int curtime = GetTickCount();
+			sprintf((char *)&(tmp.str[0]),"Elapsed time:%u secs.\n",curtime/1000); 
+			QueryPerformanceCounter(&liPerfStart);
 			send(client,(const char*)&tmp,sizeof(cs_data_st),0 );
 			while(iLen<sizeof(sc_data_st))
 			{
@@ -90,8 +94,13 @@ void main(int argc,char *argv[])
 			}
 
 			sc_data_st *data = (sc_data_st *)buf;
-			printf("recv() data lend=%d from server:%d   ===? %d \n",iLen, data->data, BKDRHash((char*)tmp.str,48));
-			Sleep(200);
+			QueryPerformanceCounter(&liPerfEnd);
+			int endlock = GetTickCount();
+			double cost = ((double)liPerfEnd.QuadPart - (double)liPerfStart.QuadPart)/(double)liPerfFreq.QuadPart;
+			printf("freq:%lld(double:%lf) diff(ms):%lf \n",liPerfFreq.QuadPart,(double)liPerfFreq.QuadPart, 1000*cost);
+			printf("cost = %d \n", endlock - curtime);
+			printf("recv() data lend=%d from server:%d  ==? %d \n",iLen, data->data,BKDRHash(tmp.str, tmp.len));
+			Sleep(2000);
 		}
 		
 		closesocket(client);

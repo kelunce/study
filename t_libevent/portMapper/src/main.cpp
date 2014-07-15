@@ -1,4 +1,4 @@
-// LibeventTest.cpp : ¶¨Òå¿ØÖÆÌ¨Ó¦ÓÃ³ÌĞòµÄÈë¿Úµã¡£
+// LibeventTest.cpp : å®šä¹‰æ§åˆ¶å°åº”ç”¨ç¨‹åºçš„å…¥å£ç‚¹ã€‚
 //
 
 #include <string.h>
@@ -12,6 +12,8 @@
 #  include <arpa/inet.h>
 # endif
 #include <sys/socket.h>
+//for usleep
+#include <unistd.h> 
 #define __int16 unsigned short
 #else
 
@@ -42,7 +44,7 @@ struct sc_data_st{
 #pragma pack(pop)
 
 // BKDR Hash Function
-unsigned int BKDRHash(char *str, unsigned int len)
+unsigned int BKDRHash(const unsigned char *str, unsigned int len)
 {
 	unsigned int seed = 131; // 31 131 1313 13131 131313 etc..
 	unsigned int hash = 0;
@@ -68,32 +70,33 @@ void conn_readcb(struct bufferevent *bev, void *user_data)
 		if(sizeof(__int16) > buffsize)
 			break;
 
-        // ÕâÀïÕûÀíÊäÈë»º³åÇø
+        // è¿™é‡Œæ•´ç†è¾“å…¥ç¼“å†²åŒº
 		__int16 *pDataLen = (__int16 *)evbuffer_pullup(input,sizeof(__int16));
 		__int16 iBuffLen = *pDataLen;
 		if( (sizeof(__int16) + iBuffLen) > buffsize)
 			break;
-		// Êı¾İÍêÕû
-        // ²»Òª¸´ÖÆmemcpy(buf, evbuffer_pullup(input,packetSize), packetSize);
+		// æ•°æ®å®Œæ•´
+        // ä¸è¦å¤åˆ¶memcpy(buf, evbuffer_pullup(input,packetSize), packetSize);
         packetSize = iBuffLen + sizeof(__int16);
 		const unsigned char *buff = evbuffer_pullup(input, packetSize);
-		//´¦ÀíÊı¾İ°übuff
+		//å¤„ç†æ•°æ®åŒ…buff
 		
-        //test Ö»ÓĞÒ»ÖÖÊı¾İ°ü
+        //test åªæœ‰ä¸€ç§æ•°æ®åŒ…
 		cs_data_st *data = (cs_data_st *)buff;
-		unsigned int ret = BKDRHash((char*)&(data->str[0]),sizeof(cs_data_st) - sizeof(__int16));
+		unsigned int ret = BKDRHash(&(data->str[0]),sizeof(cs_data_st) - sizeof(__int16));
+        //usleep(1080);
 		sc_data_st tmp;
 		tmp.len = data->len;
 		tmp.data = ret;
 		evbuffer_add(output,&tmp,sizeof(sc_data_st));
 
 
-        // ÉÏÃæ´¦ÀíÍê³ÉÁËÔÙÊÍ·Å
+        // ä¸Šé¢å¤„ç†å®Œæˆäº†å†é‡Šæ”¾
 		evbuffer_drain(input, packetSize) ;
 		printf("server calc answer %d\n",ret);
-		//Ê¹ÓÃbufferevent_write»òÕßevbuffer_add·¢ËÍÊı¾İ
-		//evbuffer_writeºÍevbuffer_read£¬ÓÃÓÚÖ±½ÓÔÚÌ×½Ó×ÖÉÏĞ´/¶ÁÊı¾İ,ÔÚ¹Ø±ÕÁ¬½ÓÇ°Ò»°ãflush this cacheÊÇµ÷ÓÃ
-		//evbuffer_add¾ßÌåÔÚÊ²Ã´Ê±ºò·¢ËÍÈ¡¾öÓÚwrite buffÉèÖÃµÄ×îµÍË®Î»,Ä¬ÈÏ0
+		//ä½¿ç”¨bufferevent_writeæˆ–è€…evbuffer_addå‘é€æ•°æ®
+		//evbuffer_writeå’Œevbuffer_readï¼Œç”¨äºç›´æ¥åœ¨å¥—æ¥å­—ä¸Šå†™/è¯»æ•°æ®,åœ¨å…³é—­è¿æ¥å‰ä¸€èˆ¬flush this cacheæ˜¯è°ƒç”¨
+		//evbuffer_addå…·ä½“åœ¨ä»€ä¹ˆæ—¶å€™å‘é€å–å†³äºwrite buffè®¾ç½®çš„æœ€ä½æ°´ä½,é»˜è®¤0
 	}
 }
 
@@ -107,7 +110,7 @@ static void conn_writecb(struct bufferevent *bev, void *user_data)
     }
 }
 
-// Ò»°ã½Óµ½Õâ¸ö´íÎó»Øµ÷¶¼¹Ø±ÕÁ¬½Ó
+// ä¸€èˆ¬æ¥åˆ°è¿™ä¸ªé”™è¯¯å›è°ƒéƒ½å…³é—­è¿æ¥
 static void conn_eventcb(struct bufferevent *bev, short events, void *user_data)
 {
     if (events & BEV_EVENT_EOF) 
@@ -143,10 +146,10 @@ static void listener_cb(struct evconnlistener *listener, evutil_socket_t fd,
         event_base_loopbreak(base);
         return;
     }
-	//Ò»°ã¶øÑÔ,¶¼²»ĞèÒªĞ´»Øµ÷
+	//ä¸€èˆ¬è€Œè¨€,éƒ½ä¸éœ€è¦å†™å›è°ƒ
     bufferevent_setcb(bev, conn_readcb, /*conn_writecb*/NULL, conn_eventcb, NULL);
     bufferevent_enable(bev, EV_READ|EV_WRITE);
-	// ÕâÀï¿ÉÒÔÉèÖÃread buffµÄ×îµÍ(Ä¬ÈÏ0)ºÍ×î¸ß(Ä¬ÈÏÎŞÇî)Ë®Î»,ÕâÀï²»ĞèÒªÉèÖÃ,¼´Ê¹¶Áµ½Ò»¸ö×Ö½ÚÒ²»Øµ÷
+	// è¿™é‡Œå¯ä»¥è®¾ç½®read buffçš„æœ€ä½(é»˜è®¤0)å’Œæœ€é«˜(é»˜è®¤æ— ç©·)æ°´ä½,è¿™é‡Œä¸éœ€è¦è®¾ç½®,å³ä½¿è¯»åˆ°ä¸€ä¸ªå­—èŠ‚ä¹Ÿå›è°ƒ
 	//bufferevent_setwatermark(bev, EV_READ, 0, MAX_LINE);
 	evutil_make_socket_nonblocking(fd);
 }
