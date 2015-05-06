@@ -1,0 +1,11 @@
+FINAL: QUESTION 7: SSL
+
+In mongoDB, which of the following are true of ssl? Check all that apply:
+
+
+SSL encrypts all communication between mongodb servers -->ok
+SSL compresses data communicated between servers -->ok
+SSL always requires a keyfile on each machine.
+SSL prevents man-in-the-middle attacks  -->ok
+
+https://www.youtube.com/watch?feature=player_embedded&v=XBpToW2rNbg

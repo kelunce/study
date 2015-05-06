@@ -1,0 +1,67 @@
+FINAL: QUESTION 8: TRAFFIC IMBALANCE IN A SHARDED ENVIRONMENT
+
+In this problem, you have a cluster with 2 shards, each with a similar volume of data, but all the application traffic is going to one shard. You must diagnose the query pattern that is causing this problem and figure out how to balance out the traffic.
+
+To set up the scenario, run the following commands to set up your cluster. The config document passed to ShardingTest will eliminate the disk space issues some students have seen when using ShardingTest.
+
+mongo --nodb
+config = { d0 : { smallfiles : "", noprealloc : "", nopreallocj : ""}, d1 : { smallfiles : "", noprealloc : "", nopreallocj : "" } };
+cluster = new ShardingTest( { shards: config } );
+Once the cluster is up, click "Initialize" in MongoProc one time to finish setting up the cluster's data and configuration. If you are running MongoProc on a machine other than the one running the mongos, then you must change the host of 'mongod1' in the settings. The host should be the hostname or IP of the machine on which the mongos is running. MongoProc will use port 30999 to connect to the mongos for this problem.
+
+Once the cluster is initialized, click the "Initialize" button in MongoProc again to simulate application traffic to the cluster for 1 minute. You may click "Initialize" as many times as you like to simulate more traffic for 1 minute at a time. If you need to begin the problem again and want MongoProc to reinitialize the dataset, drop the m202 database from the cluster and click "Initialize" in MongoProc.
+
+Use diagnostic tools (e.g., mongostat and the database profiler) to determine why all application traffic is being routed to one shard. Once you believe you have fixed the problem and traffic is balanced evenly between the two shards, test using MongoProc and then turn in if the test completes successfully.
+
+Note: Dwight discusses the profiler in M102.
+
+ANSWER
+
+First, you want to figure out where the traffic imbalance is.
+
+Start by starting up the cluster:
+
+    mongo --nodb
+    
+    config = { d0 : { smallfiles : "", noprealloc : "", nopreallocj : ""}, d1 : { smallfiles : "", noprealloc : "", nopreallocj : "" } };
+    cluster = new ShardingTest( { shards: config } );
+    
+Next, click initialize for the problem in mongoProc.
+
+Before we click initialize again, we will want to perform the following setup so that we can diagnose the situation:
+
+At the bash prompt, run:
+
+mongostat --port 30999 --discover
+This will show you what's going on on both of your shards. After a couple of seconds, you should have enough data to see which shard is getting hammered: the shard on port 30000. You'll also notice, because the numbers match, that all of these queries are coming through the mongos router.
+
+We know we only have one database, and one collection. The namespace is "m202.imbalance". If we didn't know this, we could use:
+
+mongotop --port 30000
+Once we know where the action is, we can use the database profiler. Connect to the mongod process for the shard primary (in this case, the only server process for the shard) and turn on the profiler for all operations:
+
+mongo --port 30000
+use m202
+db.setProfilingLevel(2)
+show collections  // Notice that we now have the system.profile collection
+db.system.profile.find().pretty()
+Now, you'll see that there's a query that's repeatedly hitting 6 days' worth of documents based on their _id, and that the update is setting the "hot" field to true.
+
+So that's all the information we need. Let's stop the profiler from recording all of the operations:
+
+db.setProfilingLevel(0)
+Now, to go back to the mongos:
+
+mongo --port 30999
+sh.status(true)  // Look at the chunks, and the servers on which they reside.
+You'll see that there's a chunk for every day. Remember, from your profiler, the query was hitting all chunks from 7-13 (inclusive) to 7-19 (exclusive). All of these are on shard 000. We need to address the imbalance by moving 3 of those chunks. We'll also want to move 3 other chunks back so that the two shards remain balanced. We'll also want the balancer off while we're doing it, so that it doesn't move chunks around while we're trying to do so. Let's do it:
+
+sh.stopBalancer()
+sh.moveChunk("m202.imbalance", {_id: ISODate("2014-07-14")}, "shard0001")
+sh.moveChunk("m202.imbalance", {_id: ISODate("2014-07-16")}, "shard0001")
+sh.moveChunk("m202.imbalance", {_id: ISODate("2014-07-18")}, "shard0001")
+sh.moveChunk("m202.imbalance", {_id: ISODate("2014-08-14")}, "shard0000")
+sh.moveChunk("m202.imbalance", {_id: ISODate("2014-08-16")}, "shard0000")
+sh.moveChunk("m202.imbalance", {_id: ISODate("2014-08-18")}, "shard0000")
+sh.startBalancer()
+At this point, you can use mongostat again to verify that your load is balanced, or you can test and turn in.

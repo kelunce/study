@@ -1,0 +1,11 @@
+FINAL: QUESTION 7
+
+Which of these statements is true?
+
+
+MongoDB is "multi-master" -- you can write anywhere, anytime.
+MongoDB supports reads from slaves/secondaries that are in remote locations. -->ok
+Most MongoDB queries involve javascript execution on the database server(s).
+
+
+https://www.youtube.com/watch?feature=player_embedded&v=vIiS7APVq3c

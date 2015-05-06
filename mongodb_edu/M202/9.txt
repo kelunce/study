@@ -1,0 +1,27 @@
+FINAL: QUESTION 9: AUTOMATIC CHUNK SPLITTING
+
+In a sharded cluster, which of the following can keep large chunks from being split as part of MongoDB's balancing process? Check all that apply.
+
+
+Frequent restarts of all mongos processes relative to the frequency of writes (ok)
+If there are not enough distinct shard key values (ok)
+If one of the config servers is down when a mongos tries to do a split (ok)
+If the average size of the documents in the chunk is too small
+If the number of shards in the cluster is too small
+
+
+ANSWER
+
+The question was "In a sharded cluster, which of the following can keep large chunks from being split as part of MongoDB's balancing process?"
+
+Let's go through the answers one by one.
+
+Frequent restarts of the mongos processes relative to the frequency of writes will prevent chunk splits, since the splits originate on the mongos's. Obviously, this is not a best practice, but it does technically work. So this is correct.
+
+If there are not enough distinct shard key values, there will be nothing for the chunk to split on, so it won't get split. This can happen if you pick something with limited possible values ("What day of the week was the document created on?"), but it can also happen with many values but where documents will largely cluster (for users, this might be something like religion). You can usually get around this by choosing a compound shard key and including a field with more cardinality. So this, too, is correct.
+
+When a config server is down, writes can still happen, but the cluster is in a state where the cluster metadata cannot change. Therefore, chunks can't split, chunks can't migrate, and you can't shard collections (though a collection that has already been sharded remains sharded). This is also correct.
+
+Document size can't prevent chunk splitting from occurring; even the largest documents (up to 16 MB) will still be small enough to result in meaningful chunk splits. That's why this is not a correct statement.
+
+Finally, the number of shards in the cluster is irrelevant. Even if there is only one shard (which is not recommended unless one plans to scale out soon, as it adds overhead relative to a simple replica set deployment), chunks can still be split so that if another shard is added, chunk migrations can occur and the load can get distributed. This is not a correct statement.

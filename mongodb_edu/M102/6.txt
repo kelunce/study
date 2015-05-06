@@ -1,0 +1,27 @@
+FINAL: QUESTION 6
+
+Which of these statements is true?
+
+Note: to get a multiple answer question right in this final you must get all the components right, so even if some parts are simple, take your time.
+
+
+MongoDB supports atomic operations on individual documents. -->ok
+MongoDB (v3.0) supports transactions spanning multiple documents, if those documents all reside on the same shard.
+MongoDB allows you to choose the storage engine separately for each collection on your mongod.
+MongoDB has a data type for binary data.  -->ok
+
+
+ANSWER
+
+Let's examine the possible answers one-by-one:
+
+Correct answers:
+MongoDB supports atomic operations on individual documents.
+You can find this in the docs, or elsewhere in the courseware.
+MongoDB has a data type for binary data.
+This isn't something we talk about in the course, a lot, but you can easily look at the documentation for this information, and see that binary data type is definitely there.
+Wrong Answers:
+MongoDB (v3.0) supports transactions spanning multiple documents, if those documents all reside on the same shard.
+MongoDB doesn't support multi-document transactions (sharded or not), as has been emphasized throughout the course. Here is a page from the docs showing how to emulate this behavior, if required by your system, at the level of the application, and at some cost to performance.
+MongoDB allows you to choose the storage engine separately for each collection on your mongod.
+The storage engine is chosen when the mongod process is started, and cannot be changed for just one collection. Interestingly, you can set storage engine options at the collection level, but these will be options passed to the storage engine that determine how it might configure the collection, and these options do not involve selecting the storage engine itself for a collection.

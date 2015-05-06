@@ -1,0 +1,41 @@
+FINAL: QUESTION 4
+
+Keep the three member replica set from the above problems running. We've had a request to make the third member never eligible to be primary. (The member should still be visible as a secondary.)
+
+Reconfigure the replica set so that the third member can never be primary. Then run:
+
+$ mongo --shell a.js --port 27003
+And run:
+
+> part4()
+And enter the result in the text box below (with no spaces or line feeds just the exact value returned).
+
+
+233
+
+https://www.youtube.com/watch?feature=player_embedded&v=Ppw8_pzQQSs
+ANSWER NOTES
+
+This problem has been changed slightly from the original that Dwight was working from, so it now has an arbiter (previously, it used 3 full members). You'll see the difference in rs.conf(), when it will probably be (for you):
+
+{
+	"_id" : "z",
+	"version" : 2,
+	"members" : [
+		{
+			"_id" : 1,
+			"host" : "localhost:27001"
+		},
+		{
+			"_id" : 2,
+			"host" : "localhost:27002",
+			"arbiterOnly" : true
+		},
+		{
+			"_id" : 3,
+			"host" : "localhost:27003",
+			"priority" : 0
+		}
+	]
+}
+Other than this, though, the answer remains completely correct.

@@ -1,0 +1,380 @@
+FINAL: QUESTION 10
+
+Now, for our temporary data mart, once again from a mongo shell connected to the cluster:
+
+
+1) create an index {N2:1,mutant:1} for the snps.elegans collection. 
+2) now run:
+db.elegans.find({N2:"T",mutant:"A"}).limit(5).explain("executionStats")
+Based on the explain output, which of the following statements below are true?
+
+
+2 shards are queried.  -->ok
+7 documents are examined.
+8 documents are examined. -->ok
+1 shard is queried.
+5 documents are examined.
+No shards are queried.
+Thousands of documents are examined.
+
+
+ANSWER
+
+Let's begin by creating the index:
+
+mongos> db.elegans.createIndex( { N2 : 1, mutant : 1 } )
+{
+	"raw" : {
+		"localhost:27501" : {
+			"createdCollectionAutomatically" : false,
+			"numIndexesBefore" : 2,
+			"numIndexesAfter" : 3,
+			"ok" : 1
+		},
+		"localhost:27601" : {
+			"createdCollectionAutomatically" : false,
+			"numIndexesBefore" : 2,
+			"numIndexesAfter" : 3,
+			"ok" : 1
+		}
+	},
+	"ok" : 1
+}
+mongos>
+Next, we'll look at the explain output. Here is how it looks on a macbook air:
+
+mongos> db.elegans.find({N2:"T",mutant:"A"}).limit(5).explain("executionStats")
+{
+ "queryPlanner" : {
+  "mongosPlannerVersion" : 1,
+  "winningPlan" : {
+   "stage" : "SHARD_MERGE",
+   "shards" : [
+    {
+     "shardName" : "s1",
+     "connectionString" : "localhost:27501",
+     "serverInfo" : {
+      "host" : "cross-mb-air.local",
+      "port" : 27501,
+      "version" : "3.0.2",
+      "gitVersion" : "6201872043ecbbc0a4cc169b5482dcf385fc464f"
+     },
+     "plannerVersion" : 1,
+     "namespace" : "snps.elegans",
+     "indexFilterSet" : false,
+     "parsedQuery" : {
+      "$and" : [
+       {
+        "N2" : {
+         "$eq" : "T"
+        }
+       },
+       {
+        "mutant" : {
+         "$eq" : "A"
+        }
+       }
+      ]
+     },
+     "winningPlan" : {
+      "stage" : "LIMIT",
+      "limitAmount" : 0,
+      "inputStage" : {
+       "stage" : "KEEP_MUTATIONS",
+       "inputStage" : {
+        "stage" : "SHARDING_FILTER",
+        "inputStage" : {
+         "stage" : "FETCH",
+         "inputStage" : {
+          "stage" : "IXSCAN",
+          "keyPattern" : {
+           "N2" : 1,
+           "mutant" : 1
+          },
+          "indexName" : "N2_1_mutant_1",
+          "isMultiKey" : false,
+          "direction" : "forward",
+          "indexBounds" : {
+           "N2" : [
+            "[\"T\", \"T\"]"
+           ],
+           "mutant" : [
+            "[\"A\", \"A\"]"
+           ]
+          }
+         }
+        }
+       }
+      }
+     },
+     "rejectedPlans" : [ ]
+    },
+    {
+     "shardName" : "s2",
+     "connectionString" : "localhost:27601",
+     "serverInfo" : {
+      "host" : "cross-mb-air.local",
+      "port" : 27601,
+      "version" : "3.0.2",
+      "gitVersion" : "6201872043ecbbc0a4cc169b5482dcf385fc464f"
+     },
+     "plannerVersion" : 1,
+     "namespace" : "snps.elegans",
+     "indexFilterSet" : false,
+     "parsedQuery" : {
+      "$and" : [
+       {
+        "N2" : {
+         "$eq" : "T"
+        }
+       },
+       {
+        "mutant" : {
+         "$eq" : "A"
+        }
+       }
+      ]
+     },
+     "winningPlan" : {
+      "stage" : "LIMIT",
+      "limitAmount" : 3,
+      "inputStage" : {
+       "stage" : "KEEP_MUTATIONS",
+       "inputStage" : {
+        "stage" : "SHARDING_FILTER",
+        "inputStage" : {
+         "stage" : "FETCH",
+         "inputStage" : {
+          "stage" : "IXSCAN",
+          "keyPattern" : {
+           "N2" : 1,
+           "mutant" : 1
+          },
+          "indexName" : "N2_1_mutant_1",
+          "isMultiKey" : false,
+          "direction" : "forward",
+          "indexBounds" : {
+           "N2" : [
+            "[\"T\", \"T\"]"
+           ],
+           "mutant" : [
+            "[\"A\", \"A\"]"
+           ]
+          }
+         }
+        }
+       }
+      }
+     },
+     "rejectedPlans" : [ ]
+    }
+   ]
+  }
+ },
+ "executionStats" : {
+  "nReturned" : 7,
+  "executionTimeMillis" : 0,
+  "totalKeysExamined" : 8,
+  "totalDocsExamined" : 8,
+  "executionStages" : {
+   "stage" : "SHARD_MERGE",
+   "nReturned" : 7,
+   "executionTimeMillis" : 0,
+   "totalKeysExamined" : 8,
+   "totalDocsExamined" : 8,
+   "totalChildMillis" : NumberLong(0),
+   "shards" : [
+    {
+     "shardName" : "s1",
+     "executionSuccess" : true,
+     "executionStages" : {
+      "stage" : "LIMIT",
+      "nReturned" : 5,
+      "executionTimeMillisEstimate" : 0,
+      "works" : 7,
+      "advanced" : 5,
+      "needTime" : 1,
+      "needFetch" : 0,
+      "saveState" : 0,
+      "restoreState" : 0,
+      "isEOF" : 1,
+      "invalidates" : 0,
+      "limitAmount" : 0,
+      "inputStage" : {
+       "stage" : "KEEP_MUTATIONS",
+       "nReturned" : 5,
+       "executionTimeMillisEstimate" : 0,
+       "works" : 6,
+       "advanced" : 5,
+       "needTime" : 1,
+       "needFetch" : 0,
+       "saveState" : 0,
+       "restoreState" : 0,
+       "isEOF" : 0,
+       "invalidates" : 0,
+       "inputStage" : {
+        "stage" : "SHARDING_FILTER",
+        "nReturned" : 5,
+        "executionTimeMillisEstimate" : 0,
+        "works" : 6,
+        "advanced" : 5,
+        "needTime" : 0,
+        "needFetch" : 0,
+        "saveState" : 0,
+        "restoreState" : 0,
+        "isEOF" : 0,
+        "invalidates" : 0,
+        "chunkSkips" : 1,
+        "inputStage" : {
+         "stage" : "FETCH",
+         "nReturned" : 6,
+         "executionTimeMillisEstimate" : 0,
+         "works" : 6,
+         "advanced" : 6,
+         "needTime" : 0,
+         "needFetch" : 0,
+         "saveState" : 0,
+         "restoreState" : 0,
+         "isEOF" : 0,
+         "invalidates" : 0,
+         "docsExamined" : 6,
+         "alreadyHasObj" : 0,
+         "inputStage" : {
+          "stage" : "IXSCAN",
+          "nReturned" : 6,
+          "executionTimeMillisEstimate" : 0,
+          "works" : 6,
+          "advanced" : 6,
+          "needTime" : 0,
+          "needFetch" : 0,
+          "saveState" : 0,
+          "restoreState" : 0,
+          "isEOF" : 0,
+          "invalidates" : 0,
+          "keyPattern" : {
+           "N2" : 1,
+           "mutant" : 1
+          },
+          "indexName" : "N2_1_mutant_1",
+          "isMultiKey" : false,
+          "direction" : "forward",
+          "indexBounds" : {
+           "N2" : [
+            "[\"T\", \"T\"]"
+           ],
+           "mutant" : [
+            "[\"A\", \"A\"]"
+           ]
+          },
+          "keysExamined" : 6,
+          "dupsTested" : 0,
+          "dupsDropped" : 0,
+          "seenInvalidated" : 0,
+          "matchTested" : 0
+         }
+        }
+       }
+      }
+     }
+    },
+    {
+     "shardName" : "s2",
+     "executionSuccess" : true,
+     "executionStages" : {
+      "stage" : "LIMIT",
+      "nReturned" : 2,
+      "executionTimeMillisEstimate" : 0,
+      "works" : 3,
+      "advanced" : 2,
+      "needTime" : 0,
+      "needFetch" : 0,
+      "saveState" : 0,
+      "restoreState" : 0,
+      "isEOF" : 1,
+      "invalidates" : 0,
+      "limitAmount" : 3,
+      "inputStage" : {
+       "stage" : "KEEP_MUTATIONS",
+       "nReturned" : 2,
+       "executionTimeMillisEstimate" : 0,
+       "works" : 3,
+       "advanced" : 2,
+       "needTime" : 0,
+       "needFetch" : 0,
+       "saveState" : 0,
+       "restoreState" : 0,
+       "isEOF" : 1,
+       "invalidates" : 0,
+       "inputStage" : {
+        "stage" : "SHARDING_FILTER",
+        "nReturned" : 2,
+        "executionTimeMillisEstimate" : 0,
+        "works" : 3,
+        "advanced" : 2,
+        "needTime" : 0,
+        "needFetch" : 0,
+        "saveState" : 0,
+        "restoreState" : 0,
+        "isEOF" : 1,
+        "invalidates" : 0,
+        "chunkSkips" : 0,
+        "inputStage" : {
+         "stage" : "FETCH",
+         "nReturned" : 2,
+         "executionTimeMillisEstimate" : 0,
+         "works" : 3,
+         "advanced" : 2,
+         "needTime" : 0,
+         "needFetch" : 0,
+         "saveState" : 0,
+         "restoreState" : 0,
+         "isEOF" : 1,
+         "invalidates" : 0,
+         "docsExamined" : 2,
+         "alreadyHasObj" : 0,
+         "inputStage" : {
+          "stage" : "IXSCAN",
+          "nReturned" : 2,
+          "executionTimeMillisEstimate" : 0,
+          "works" : 3,
+          "advanced" : 2,
+          "needTime" : 0,
+          "needFetch" : 0,
+          "saveState" : 0,
+          "restoreState" : 0,
+          "isEOF" : 1,
+          "invalidates" : 0,
+          "keyPattern" : {
+           "N2" : 1,
+           "mutant" : 1
+          },
+          "indexName" : "N2_1_mutant_1",
+          "isMultiKey" : false,
+          "direction" : "forward",
+          "indexBounds" : {
+           "N2" : [
+            "[\"T\", \"T\"]"
+           ],
+           "mutant" : [
+            "[\"A\", \"A\"]"
+           ]
+          },
+          "keysExamined" : 2,
+          "dupsTested" : 0,
+          "dupsDropped" : 0,
+          "seenInvalidated" : 0,
+          "matchTested" : 0
+         }
+        }
+       }
+      }
+     }
+    }
+   ]
+  }
+ },
+ "ok" : 1
+}
+mongos>
+
+We can see that "totalDocsExamined" : 8 (in the SHARD_MERGE stage), and that there are 2 shards. Everything else is false, based on this output.
