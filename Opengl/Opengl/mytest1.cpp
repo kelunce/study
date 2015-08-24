@@ -16,6 +16,7 @@
 // even though they are deprecated in modern versions.
 
 #include <stdlib.h>
+#include <GL/glew.h>
 #include <GL/glut.h>
 #include "shaders.h"
 
@@ -229,6 +230,10 @@ int main(int argc, char** argv)
    glutInitWindowSize (500, 500); 
    glutInitWindowPosition (100, 100);
    glutCreateWindow ("Simple Demo with Shaders");
+   GLenum err = glewInit() ; 
+   if (GLEW_OK != err) { 
+	   std::cerr << "Error: " << glewGetString(err) << std::endl; 
+   } 
    init (); // Always initialize first
 
    // Now, we define callbacks and functions for various tasks.
