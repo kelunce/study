@@ -1,4 +1,5 @@
-在xp vs2010中测试,
+```
+在xp vs2010中测试
 portMapper  服务端
 client 客户端
 lib及include目录是libevent库及其头文件 其中lib库通过微软nmake生成:
@@ -15,3 +16,4 @@ C/C++：
 连接器：
 输入：ws2_32.lib;wsock32.lib;libevent.lib;libevent_core.lib;libevent_extras.lib;
 ws2_32.lib;wsock32.lib;是用来编译Windows网络相关的程序库。
+```
